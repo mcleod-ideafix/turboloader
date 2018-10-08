@@ -2,6 +2,8 @@
 # (C)2018 Miguel Angel Rodriguez Jodar
 # See LICENSE for licensing details.
 
+# This file to be converted into a PZX file using PZX tools: txt2pzx
+
 # Leader tone: 1000 pulses of 1500 T each one (500 cycles). Loader needs
 # at least 256 continuous cycles to detect a valid leader tone.
 # Sync pulses follow inmediately, one 400 T pulse, followed by one 800 T pulse.
