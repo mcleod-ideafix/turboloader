@@ -1,2 +1,2 @@
 # Turbo Loader
-Parametrized turbo loader for ZX Spectrum (an possibly, other Z80-based computers).
+Parametrized turbo loader for ZX Spectrum (and possibly, other Z80-based computers).
