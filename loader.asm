@@ -50,7 +50,8 @@ LoadBytes                ;Entrada: IX=direccion inicio, DE=longitud carga
 ResetMascara             ld c,00001010b  ;Polaridad normal, borde rojo/cyan, MIC on (esperamos nivel bajo)
 BuscaEngancheTonoguia    ld l,0
 
-EsperaPulsoTonoGuia      call Mide1Pulso
+EsperaPulsoTonoGuia      ld b,0
+                         call Mide1Pulso
                          jr z,BuscaEngancheTonoguia  ;no se detectó cambio
                          jr nc,SalidaLoad            ;se pulso BREAK
                          ld a,b
@@ -59,6 +60,7 @@ EsperaPulsoTonoGuia      call Mide1Pulso
 
                          ;Llegados aqui, tenemos un candidato para pulso bajo del tono guia.
                          ;Vamos a ver si le sigue un pulso alto de la duracion adecuada
+                         ld b,0
                          call Mide1Pulso
                          jr z,BuscaEngancheTonoguia  ;no se detectó cambio
                          jr nc,SalidaLoad            ;se pulso BREAK
@@ -76,13 +78,15 @@ EsperaPulsoTonoGuia      call Mide1Pulso
 
                          ;PASO 2: sigo recibiendo ciclos de tonos guia pero espero pulso de sincronismo
 
-EsperaPulsoSync          call Mide1Pulso
+EsperaPulsoSync          ld b,0
+                         call Mide1Pulso
                          jr z,BuscaEngancheTonoguia  ;no se detectó cambio
                          jr nc,SalidaLoad            ;se pulso BREAK
                          ld a,b
                          cp CTE_CMP_SYNC
                          jr nc,EsperaPulsoSync       ;pulso demasiado largo? seguimos buscando
 
+                         ld b,0
                          call Mide1Pulso
                          jr z,BuscaEngancheTonoguia  ;no se detectó cambio
                          jr nc,SalidaLoad            ;se pulso BREAK
@@ -97,7 +101,9 @@ EsperaPulsoSync          call Mide1Pulso
                          ld c,a
 
 BucleLoadBytes           ld l,1                     ;L guarda el byte formandose (de bit más a menos significativo)
-BucleLoadBits            call Mide1Ciclo
+BucleLoadBits            ld b,0
+                         call Mide1Pulso
+                         call Mide1Pulso
                          jr z,ResetMascara          ;no se detectó cambio
                          jr nc,SalidaLoad           ;se pulso BREAK
                          ld a,CTE_CMP_BIT
@@ -122,7 +128,6 @@ Mide1Pulso               ;CF=0 para indicar que se pulso BREAK
                          ;ZF=1 para indicar overrun de la constante de tiempo
                          ;B = tiempo del pulso medido (en ciclos de este bucle)
                          ;Cada ciclo del bucle consume 54 ciclos de reloj
-                         ld b,0         ;Contador inicialmente a 0
                          ld h,00100000b ;Mascara para aislar EAR (una vez desplazado A a la derecha)
 BucleMidePulso           ld a,7Fh
                          in a,(254)
@@ -139,40 +144,3 @@ BucleMidePulso           ld a,7Fh
                          ld c,a
                          scf            ;todo OK. CF=1, ZF=0
                          ret
-
-Mide1Ciclo               ;CF=0 para indicar que se pulso BREAK
-                         ;ZF=1 para indicar overrun de la constante de tiempo
-                         ;B = tiempo del pulso medido (en ciclos de este bucle)
-                         ;Cada ciclo del bucle consume 54 ciclos de reloj
-                         ld b,0         ;Contador inicialmente a 0
-                         ld h,00100000b ;Mascara para aislar EAR (una vez desplazado A a la derecha)
-BucleMidePulso1          ld a,7Fh
-                         in a,(254)
-                         rra
-                         ret nc         ;si se pulso BREAK, salir
-                         inc b          ;actualizamos contador de tiempos
-                         ret z
-                         xor c          ;aplicamos polaridad actual
-                         and h          ;aislamos pulso EAR
-                         jp z,BucleMidePulso1
-                         ld a,c         ;recuperamos color borde de C
-                         xor 00100111b  ;cambiamos polaridad actual, valor de MIC, y color del borde
-                         out (254),a
-                         ld c,a
-BucleMidePulso2          ld a,7Fh
-                         in a,(254)
-                         rra
-                         ret nc         ;si se pulso BREAK, salir
-                         inc b          ;actualizamos contador de tiempos
-                         ret z
-                         xor c          ;aplicamos polaridad actual
-                         and h          ;aislamos pulso EAR
-                         jp z,BucleMidePulso2
-                         ld a,c         ;recuperamos color borde de C
-                         xor 00100111b  ;cambiamos polaridad actual, valor de MIC, y color del borde
-                         out (254),a
-                         ld c,a
-                         scf            ;todo OK. CF=1, ZF=0
-                         ret
-
-                         end
